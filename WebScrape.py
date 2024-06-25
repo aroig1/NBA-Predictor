@@ -23,11 +23,11 @@ class WebScraper:
 
     def __init__(self):
         self.options = webdriver.ChromeOptions()
-        self.options.add_argument("--headless=new") # Run without UI popup
+        # self.options.add_argument("--headless=new") # Run without UI popup
         self.options.add_argument("--ignore-certificate-errors")
         self.options.add_argument("--log-level=3")  # Suppresses most logs
         self.options.add_argument("--disable-logging")
-        self.service = Service(ChromeDriverManager().install())
+        # self.service = Service(ChromeDriverManager().install())
 
     def goToPage(self, teamID, seasonType, seasonYear, statType):
         try:
@@ -38,13 +38,14 @@ class WebScraper:
             print(f'Exception occured while changing pages \n{e}')
 
     def getTableColumns(self):
-        tableHead = ["Date", "Home", "Away"]
+        tableHead = ["Date", "Home", "Away", "Winner (H/A)"]
         tableHead_xpath = '//div[3]/table/thead//th'
 
         try:
             NUM_COLUMNS = len(self.driver.find_elements(By.XPATH, tableHead_xpath))
 
-            for i in range(1, NUM_COLUMNS):
+            # Loop through columns (skipping first 2)
+            for i in range(2, NUM_COLUMNS):
                 statName_xpath = tableHead_xpath + '[' + str(i + 1) + ']'
                 statName = self.driver.find_element(By.XPATH, statName_xpath)
                 tableHead.append(statName.text)
@@ -66,6 +67,7 @@ class WebScraper:
                 row_xpath = tableRow_xpath + '[' + str(i + 1) + ']'
                 rowStats = []
                 matchup = self.driver.find_element(By.XPATH, row_xpath + '/td[1]').text
+                win_loss = self.driver.find_element(By.XPATH, row_xpath + '/td[2]').text
 
                 # Split up matchup column
                 temp = matchup.split(' - ')
@@ -74,13 +76,24 @@ class WebScraper:
                     temp = temp[1].split(' @ ')
                     rowStats.append(temp[1])
                     rowStats.append(temp[0])
+                    # Change W/L column to be based on Home/Away
+                    if (win_loss == 'W'):
+                        rowStats.append('A')
+                    else:
+                        rowStats.append('H')
                 elif 'vs.' in temp[1]:
                     temp = temp[1].split(' vs. ')
                     rowStats.append(temp[0])
                     rowStats.append(temp[1])
+                    # Change W/L column to be based on Home/Away 
+                    if (win_loss == 'W'):
+                        rowStats.append('H')
+                    else:
+                        rowStats.append('A')
 
-                # Loop through columns 
-                for j in range(1, NUM_COLUMNS):
+
+                # Loop through columns (skipping first 2)
+                for j in range(2, NUM_COLUMNS):
                     stat_xpath = row_xpath + '/td[' + str(j + 1) + ']'
                     stat = self.driver.find_element(By.XPATH, stat_xpath)
                     rowStats.append(stat.text)
@@ -92,7 +105,8 @@ class WebScraper:
         return table
     
     def scrapePage(self, team, seasonType, seasonYear, statType):
-        self.driver = webdriver.Chrome(service=self.service, options=self.options)
+        # self.driver = webdriver.Chrome(service=self.service, options=self.options)
+        self.driver = webdriver.Chrome(options=self.options)
 
         self.goToPage(self.teamIDs[team], seasonType, seasonYear, statType)
         time.sleep(10)
@@ -125,7 +139,12 @@ class WebScraper:
         fileName = 'rawData/'  + seasonYear + '/AllTeams ' + seasonYear + '.csv'
         df.to_csv(fileName, index=False)
 
+    def scrapeAllYears(self):
+        for year in self.seasonYears:
+            self.scrapeAllTeams(year)
+
 if __name__ == "__main__":
 
     thing = WebScraper()
-    thing.scrapeAllTeams('2021-22')
+    thing.scrapeAllYears()
+    #thing.scrapeAllTeams('2019-20')
