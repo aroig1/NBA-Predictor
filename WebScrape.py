@@ -1,10 +1,15 @@
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
+import time
 
 class WebScraper:
     driver = None
+    options = None
+    service = None
     teamIDs = {'ATL': '1610612737', 'BOS': '1610612738', 'BKN': '1610612751', 'CHA': '1610612766',
             'CHI': '1610612741', 'CLE': '1610612739', 'DAL': '1610612742', 'DEN': '1610612743',
             'DET': '1610612765', 'GSW': '1610612744', 'HOU': '1610612745', 'IND': '1610612754',
@@ -16,83 +21,111 @@ class WebScraper:
     seasonYears = ['2019-20', '2020-21', '2021-22', '2022-23', '2023-24']
     seasonTypes = ['Regular+Season', 'Playoffs']
 
-    def __init__(self, driver):
-        self.driver = driver
+    def __init__(self):
+        self.options = webdriver.ChromeOptions()
+        self.options.add_argument("--headless=new") # Run without UI popup
+        self.options.add_argument("--ignore-certificate-errors")
+        self.options.add_argument("--log-level=3")  # Suppresses most logs
+        self.options.add_argument("--disable-logging")
+        self.service = Service(ChromeDriverManager().install())
 
     def goToPage(self, teamID, seasonType, seasonYear, statType):
-        url = 'https://www.nba.com/stats/team/' + teamID + '/boxscores-' + statType + '?'
-        url += 'SeasonType=' + seasonType + '&Season=' + seasonYear
-        driver.get(url)
+        try:
+            url = 'https://www.nba.com/stats/team/' + teamID + '/boxscores-' + statType + '?'
+            url += 'SeasonType=' + seasonType + '&Season=' + seasonYear
+            self.driver.get(url)
+        except Exception as e:
+            print(f'Exception occured while changing pages \n{e}')
 
     def getTableColumns(self):
         tableHead = ["Date", "Home", "Away"]
         tableHead_xpath = '//div[3]/table/thead//th'
-        NUM_COLUMNS = len(driver.find_elements(By.XPATH, tableHead_xpath))
 
-        for i in range(1, NUM_COLUMNS):
-            statName_xpath = tableHead_xpath + '[' + str(i + 1) + ']'
-            statName = driver.find_element(By.XPATH, statName_xpath)
-            tableHead.append(statName.text)
+        try:
+            NUM_COLUMNS = len(self.driver.find_elements(By.XPATH, tableHead_xpath))
+
+            for i in range(1, NUM_COLUMNS):
+                statName_xpath = tableHead_xpath + '[' + str(i + 1) + ']'
+                statName = self.driver.find_element(By.XPATH, statName_xpath)
+                tableHead.append(statName.text)
+        except Exception as e:
+            print(f'Error while getting table column names \n{e}')
 
         return tableHead
 
     def getTableStats(self):
         table = []
         tableRow_xpath = '//div[3]/table/tbody/tr'
-        tableRow = driver.find_elements(By.XPATH, tableRow_xpath)
+        tableRow = self.driver.find_elements(By.XPATH, tableRow_xpath)
         tableHead_xpath = '//div[3]/table/thead//th'
-        NUM_COLUMNS = len(driver.find_elements(By.XPATH, tableHead_xpath))
+        NUM_COLUMNS = len(self.driver.find_elements(By.XPATH, tableHead_xpath))
 
         # Loop through rows
         for i in range(len(tableRow)):
-            row_xpath = tableRow_xpath + '[' + str(i + 1) + ']'
-            rowStats = []
-            matchup = driver.find_element(By.XPATH, row_xpath + '/td[1]').text
-            print(matchup) # For tracking progress
+            try:
+                row_xpath = tableRow_xpath + '[' + str(i + 1) + ']'
+                rowStats = []
+                matchup = self.driver.find_element(By.XPATH, row_xpath + '/td[1]').text
 
-            # Split up matchup column
-            temp = matchup.split(' - ')
-            rowStats.append(temp[0])
-            if '@' in temp[1]:
-                temp = temp[1].split(' @ ')
-                rowStats.append(temp[1])
+                # Split up matchup column
+                temp = matchup.split(' - ')
                 rowStats.append(temp[0])
-            elif 'vs.' in temp[1]:
-                temp = temp[1].split(' vs. ')
-                rowStats.append(temp[0])
-                rowStats.append(temp[1])
+                if '@' in temp[1]:
+                    temp = temp[1].split(' @ ')
+                    rowStats.append(temp[1])
+                    rowStats.append(temp[0])
+                elif 'vs.' in temp[1]:
+                    temp = temp[1].split(' vs. ')
+                    rowStats.append(temp[0])
+                    rowStats.append(temp[1])
 
-            # Loop through columns 
-            for j in range(1, NUM_COLUMNS):
-                stat_xpath = row_xpath + '/td[' + str(j + 1) + ']'
-                stat = driver.find_element(By.XPATH, stat_xpath)
-                rowStats.append(stat.text)
+                # Loop through columns 
+                for j in range(1, NUM_COLUMNS):
+                    stat_xpath = row_xpath + '/td[' + str(j + 1) + ']'
+                    stat = self.driver.find_element(By.XPATH, stat_xpath)
+                    rowStats.append(stat.text)
 
-            table.append(rowStats)
+                table.append(rowStats)
+            except Exception as e:
+                print(f'Error scraping row {i} \n{e}')
 
         return table
     
     def scrapePage(self, team, seasonType, seasonYear, statType):
+        self.driver = webdriver.Chrome(service=self.service, options=self.options)
+
         self.goToPage(self.teamIDs[team], seasonType, seasonYear, statType)
+        time.sleep(10)
+
+        select = Select(self.driver.find_element(By.XPATH, '//section[3]//div[2]//select'))
+        select.select_by_visible_text('All')
+        time.sleep(3)
+
         columns = self.getTableColumns()
         table = self.getTableStats()
         df = pd.DataFrame(table, columns=columns)
-        fileName = team + ' ' + seasonYear + '.csv'
+        fileName = 'rawData/' + seasonYear + '/' + team + ' ' + seasonYear + '.csv'
         df.to_csv(fileName, index=False)
+
+        self.driver.close()
+
         return df
 
     def scrapeAllTeams(self, seasonYear):
         df = pd.DataFrame()
         for team in self.teamIDs:
-            temp_df = self.scrapePage(team, self.seasonTypes[0], seasonYear, 'traditional')
-            df = pd.concat([df, temp_df], axis=0)
+            try:
+                print(f'Starting {team} {seasonYear}')
+                temp_df = self.scrapePage(team, self.seasonTypes[0], seasonYear, 'traditional')
+                df = pd.concat([df, temp_df], axis=0)
+                print(f'Completed {team} {seasonYear}')
+            except Exception as e:
+                print(f'Error scraping team: {team} {seasonYear} \n{e}')
 
-        fileName = seasonYear + '.csv'
+        fileName = 'rawData/'  + seasonYear + '/AllTeams ' + seasonYear + '.csv'
         df.to_csv(fileName, index=False)
 
 if __name__ == "__main__":
 
-    driver = webdriver.Chrome()
-    thing = WebScraper(driver)
-    thing.scrapeAllTeams('2023-24')
-    driver.close()
+    thing = WebScraper()
+    thing.scrapeAllTeams('2021-22')
