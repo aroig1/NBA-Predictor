@@ -12,15 +12,16 @@ class DataModifier:
         df = pd.read_csv(fileName)
 
         team = Team()
-        columns = ['MATCH UP', 'W/L', 'PTS', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%',
+        columns = ['DATE', 'TEAM', 'OPP', 'H/A', 'W/L', 'PTS', 'FGM', 'FGA', 'FG%', 
+                   '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%',
                    'OREB', 'DREB', 'REB', 'AST', 'TOV', 'STL' ,'BLK', 'PF', '+/-']
         stats = []
 
         for index, row in df.iterrows():
             if index > 0:
-                rowStats = team.getAvgs()
-                rowStats.insert(0, row['W/L'])
-                rowStats.insert(0, row['MATCH UP'])
+                rowStats = self.splitMatchup(row['MATCH UP'])
+                rowStats.append(row['W/L'])
+                rowStats += team.getAvgs()
                 stats.append(rowStats)
             team.addGame(row)
         
@@ -29,6 +30,23 @@ class DataModifier:
         df.to_csv(fileName, index=False)
 
         return df
+    
+    def splitMatchup(self, matchup):
+        rowStats = []
+        temp = matchup.split(' - ')
+        rowStats.append(temp[0])
+        if '@' in temp[1]:
+            temp = temp[1].split(' @ ')
+            rowStats.append(temp[0])
+            rowStats.append(temp[1])
+            rowStats.append('A')
+        elif 'vs.' in temp[1]:
+            temp = temp[1].split(' vs. ')
+            rowStats.append(temp[0])
+            rowStats.append(temp[1])
+            rowStats.append('H')
+
+        return rowStats
 
     def convertYearAvgs(self, seasonYear):
         df = pd.DataFrame()
