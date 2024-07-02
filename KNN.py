@@ -19,23 +19,22 @@ class KNN:
 
     def setupData(self):
         self.data = pd.read_csv("matchedData/AllYears.csv")
-
         pd.set_option('display.max_columns', None)
-
-
         self.data['Winner (H/A)'] = self.data['Winner (H/A)'].replace({'H': 1, 'A': 0})
-
         self.data.drop(['DATE', 'HOME TEAM', 'AWAY TEAM'], axis=1, inplace=True)
-
         self.data = self.data.astype(float)
 
-        X = self.data.drop("Winner (H/A)", axis=1)
-        Y = self.data["Winner (H/A)"]
+        # X = self.data.drop("Winner (H/A)", axis=1)
+        # Y = self.data["Winner (H/A)"]
+        # X = np.array(X)
+        # Y = np.array(Y)
+        # self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, Y, test_size=0.1)
 
-        X = np.array(X)
-        Y = np.array(Y)
-
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, Y, test_size=0.1)
+        train, test = train_test_split(self.data, test_size=0.1, random_state = 0)
+        self.X_train = train.drop("Winner (H/A)", axis=1)
+        self.y_train = train['Winner (H/A)']
+        self.X_test = test.drop("Winner (H/A)", axis=1)
+        self.y_test = test['Winner (H/A)']
 
         print("Train set shape:", self.X_train.shape)
         print("Test set shape:", self.X_test.shape)
@@ -68,6 +67,33 @@ class KNN:
         y_pred_knn_unscaled = knn.predict(self.X_test)
         accuracy_knn_unscaled = accuracy_score(self.y_test, y_pred_knn_unscaled)
         print("The KNN accuracy score on unscaled data is:", accuracy_knn_unscaled)
+
+    def plotModel(self, feature1, feature2):
+        features = [feature1, feature2]
+        knn = neighbors.KNeighborsClassifier(n_neighbors=self.bestK, p=1, metric='minkowski', weights='distance')
+        knn.fit(self.X_train[features], self.y_train)
+
+        h = 0.04
+        cmap_light = ListedColormap(['#FFAAAA', '#AAFFAA'])
+        cmap_bold = ListedColormap(['#FF0000', '#00FF00'])
+
+        x_min, x_max = self.X_train[features].iloc[:, 0].min() - 1, self.X_train[features].iloc[:, 0].max() + 1
+        y_min, y_max = self.X_train[features].iloc[:, 1].min() - 1, self.X_train[features].iloc[:, 1].max() + 1
+        xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+        Z = knn.predict(np.c_[xx.ravel(), yy.ravel()])
+
+        Z = Z.reshape(xx.shape)
+        plt.figure()
+        plt.pcolormesh(xx, yy, Z, cmap=cmap_light)
+
+        plt.scatter(self.X_train[features].iloc[:, 0], self.X_train[features].iloc[:, 1], c=self.y_train, cmap=cmap_bold, edgecolor='k', s=20)
+        plt.xlim(xx.min(), xx.max())
+        plt.ylim(yy.min(), yy.max())
+
+        plt.show()
+
+        y_pred = knn.predict(self.X_test[features])
+        print('Prediction Accuracy is %f' % accuracy_score(y_pred, self.y_test))
     
 
 if __name__ == '__main__':
@@ -75,3 +101,5 @@ if __name__ == '__main__':
     thing.setupData()
     thing.getBestK()
     thing.trainModel()
+    # thing.plotModel('HOME PTS', 'AWAY PTS')
+    # thing.plotModel('HOME FG%', 'AWAY FG%')

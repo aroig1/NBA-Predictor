@@ -26,22 +26,15 @@ class LogisticRegression:
 
     def setupData(self):
         self.data = pd.read_csv("matchedData/AllYears.csv")
-
         pd.set_option('display.max_columns', None)
-
-
         self.data['Winner (H/A)'] = self.data['Winner (H/A)'].replace({'H': 1, 'A': 0})
-
         self.data.drop(['DATE', 'HOME TEAM', 'AWAY TEAM'], axis=1, inplace=True)
-
         self.data = self.data.astype(float)
 
         X = self.data.drop("Winner (H/A)", axis=1)
         Y = self.data["Winner (H/A)"]
-
         X = np.array(X)
         Y = np.array(Y)
-
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, Y, test_size=0.15)
 
         print("Train set shape:", self.X_train.shape)
@@ -167,3 +160,4 @@ if __name__ == '__main__':
     thing.TBT()
     # thing.correlation_heatmap()
     thing.plot_decision_boundary(1, 20)
+    
