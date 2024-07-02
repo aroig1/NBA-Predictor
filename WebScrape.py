@@ -64,31 +64,6 @@ class WebScraper:
             try:
                 row_xpath = tableRow_xpath + '[' + str(i + 1) + ']'
                 rowStats = []
-                # matchup = self.driver.find_element(By.XPATH, row_xpath + '/td[1]').text
-                # win_loss = self.driver.find_element(By.XPATH, row_xpath + '/td[2]').text
-
-                # Split up matchup column
-                # temp = matchup.split(' - ')
-                # rowStats.append(temp[0])
-                # if '@' in temp[1]:
-                #     temp = temp[1].split(' @ ')
-                #     rowStats.append(temp[1])
-                #     rowStats.append(temp[0])
-                #     # Change W/L column to be based on Home/Away
-                #     if (win_loss == 'W'):
-                #         rowStats.append('A')
-                #     else:
-                #         rowStats.append('H')
-                # elif 'vs.' in temp[1]:
-                #     temp = temp[1].split(' vs. ')
-                #     rowStats.append(temp[0])
-                #     rowStats.append(temp[1])
-                #     # Change W/L column to be based on Home/Away 
-                #     if (win_loss == 'W'):
-                #         rowStats.append('H')
-                #     else:
-                #         rowStats.append('A')
-
 
                 # Loop through columns
                 for j in range(NUM_COLUMNS):
