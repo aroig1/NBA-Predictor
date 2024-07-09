@@ -1,15 +1,15 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn import neighbors, datasets
+from sklearn import neighbors
 from matplotlib.colors import ListedColormap
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import GridSearchCV
+from model import Model
 
-class KNN:
+class KNN(Model):
     data = None
     X_train = None
     X_test = None
@@ -17,8 +17,8 @@ class KNN:
     y_test = None
     bestK = None
 
-    def setupData(self):
-        self.data = pd.read_csv("matchedData/AllYears.csv")
+    def setupData(self, filePath):
+        self.data = pd.read_csv(filePath)
         pd.set_option('display.max_columns', None)
         self.data['Winner (H/A)'] = self.data['Winner (H/A)'].replace({'H': 1, 'A': 0})
         self.data.drop(['DATE', 'HOME TEAM', 'AWAY TEAM'], axis=1, inplace=True)
@@ -54,6 +54,8 @@ class KNN:
 
         knn.fit(self.X_train, self.y_train)
 
+        self.model = knn
+
         y_pred_knn = knn.predict(self.X_test)
         accuracy_knn = accuracy_score(self.y_test, y_pred_knn)
         print("The KNN accuracy score without scaling is:", accuracy_knn)
@@ -64,9 +66,9 @@ class KNN:
 
         knn.fit(X_train_scaled, self.y_train)
 
-        y_pred_knn_unscaled = knn.predict(self.X_test)
-        accuracy_knn_unscaled = accuracy_score(self.y_test, y_pred_knn_unscaled)
-        print("The KNN accuracy score on unscaled data is:", accuracy_knn_unscaled)
+        y_pred_knn_scaled = knn.predict(self.X_test)
+        accuracy_knn_scaled = accuracy_score(self.y_test, y_pred_knn_scaled)
+        print("The KNN accuracy score on scaled data is:", accuracy_knn_scaled)
 
     def plotModel(self, feature1, feature2):
         features = [feature1, feature2]
@@ -94,12 +96,18 @@ class KNN:
 
         y_pred = knn.predict(self.X_test[features])
         print('Prediction Accuracy is %f' % accuracy_score(y_pred, self.y_test))
-    
 
 if __name__ == '__main__':
     thing = KNN()
-    thing.setupData()
+    thing.setupData("matchedData/AllYears.csv")
+    # thing.setupData("matchedData/2019-20.csv")
+    # thing.setupData("matchedData/2020-21.csv")
+    # thing.setupData("matchedData/2021-22.csv")
+    # thing.setupData("matchedData/2022-23.csv")
+    # thing.setupData("matchedData/2023-24.csv")
     thing.getBestK()
     thing.trainModel()
+    thing.saveModel("models/KNN.sav")
+    thing.loadModel("models/KNN.sav")
     # thing.plotModel('HOME PTS', 'AWAY PTS')
     # thing.plotModel('HOME FG%', 'AWAY FG%')

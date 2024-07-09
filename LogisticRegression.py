@@ -2,21 +2,14 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from scipy import stats
-from sklearn import svm, datasets
 from sklearn.metrics import accuracy_score
-from matplotlib.colors import ListedColormap
-from sklearn.linear_model import Ridge
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
 from sklearn import linear_model
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_val_score
+from model import Model
 
-class LogisticRegression:
+class LogisticRegression(Model):
     data = None
     X_train = None
     X_test = None
@@ -24,8 +17,8 @@ class LogisticRegression:
     y_test = None
     bestC = 0.1
 
-    def setupData(self):
-        self.data = pd.read_csv("matchedData/AllYears.csv")
+    def setupData(self, filePath):
+        self.data = pd.read_csv(filePath)
         pd.set_option('display.max_columns', None)
         self.data['Winner (H/A)'] = self.data['Winner (H/A)'].replace({'H': 1, 'A': 0})
         self.data.drop(['DATE', 'HOME TEAM', 'AWAY TEAM'], axis=1, inplace=True)
@@ -52,10 +45,10 @@ class LogisticRegression:
         return bestC
     
     def TBT(self):
-        logreg = linear_model.LogisticRegression(C=self.bestC, max_iter=1000)
-        logreg.fit(self.X_train, self.y_train)
+        self.model = linear_model.LogisticRegression(C=self.bestC, max_iter=1000)
+        self.model.fit(self.X_train, self.y_train)
 
-        y_pred = logreg.predict(self.X_test)
+        y_pred = self.model.predict(self.X_test)
         accuracy = accuracy_score(self.y_test, y_pred)
         print("The logistic regression accuracy score is:", accuracy)
 
@@ -155,9 +148,11 @@ class LogisticRegression:
 
 if __name__ == '__main__':
     thing = LogisticRegression()
-    thing.setupData()
+    thing.setupData("matchedData/AllYears.csv")
     # thing.getBestC()
     thing.TBT()
+    thing.saveModel("models/logisticRegression.sav")
+    thing.loadModel("models/logisticRegression.sav")
+
     # thing.correlation_heatmap()
-    thing.plot_decision_boundary(1, 20)
-    
+    # thing.plot_decision_boundary(1, 20)
