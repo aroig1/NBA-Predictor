@@ -44,7 +44,7 @@ class LogisticRegression(Model):
 
         return bestC
     
-    def TBT(self):
+    def trainModel(self):
         self.model = linear_model.LogisticRegression(C=self.bestC, max_iter=1000)
         self.model.fit(self.X_train, self.y_train)
 
@@ -150,9 +150,9 @@ if __name__ == '__main__':
     thing = LogisticRegression()
     thing.setupData("matchedData/AllYears.csv")
     # thing.getBestC()
-    thing.TBT()
-    thing.saveModel("models/logisticRegression.sav")
-    thing.loadModel("models/logisticRegression.sav")
+    thing.trainModel()
+    # thing.saveModel("models/logisticRegression.sav")
+    # thing.loadModel("models/logisticRegression.sav")
 
     # thing.correlation_heatmap()
     # thing.plot_decision_boundary(1, 20)
